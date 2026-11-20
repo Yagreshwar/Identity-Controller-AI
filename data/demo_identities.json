@@ -1,0 +1,75 @@
+
+{
+  "identities": [
+    {
+      "identity_id": "9a115c2b-c0fb-4328-b6c1-5b99fa3a7849",
+      "display_name": "Alex Morgan",
+      "user_principal_name": "alex.morgan@yagreshwar007gmail.onmicrosoft.com",
+      "account_enabled": true,
+      "identity_type": "user"
+    },
+    {
+      "identity_id": "157b989a-1b8b-40d5-b823-eec5546e4e40",
+      "display_name": "Priya Shah",
+      "user_principal_name": "priya.shah@yagreshwar007gmail.onmicrosoft.com",
+      "account_enabled": true,
+      "identity_type": "user"
+    },
+    {
+      "identity_id": "6a6ace6b-99a6-40cd-a6a4-cef2635679dd",
+      "display_name": "idcmd-build-service",
+      "user_principal_name": null,
+      "account_enabled": true,
+      "identity_type": "service_principal"
+    },
+    {
+      "identity_id": "00000000-0000-0000-0000-000000000004",
+      "display_name": "John Carter",
+      "user_principal_name": "john.carter@contoso-demo.com",
+      "account_enabled": true,
+      "identity_type": "user"
+    },
+    {
+      "identity_id": "00000000-0000-0000-0000-000000000005",
+      "display_name": "Emma Wilson",
+      "user_principal_name": "emma.wilson@contoso-demo.com",
+      "account_enabled": true,
+      "identity_type": "user"
+    },
+    {
+      "identity_id": "00000000-0000-0000-0000-000000000006",
+      "display_name": "Liam Jones",
+      "user_principal_name": "liam.jones@contoso-demo.com",
+      "account_enabled": true,
+      "identity_type": "user"
+    },
+    {
+      "identity_id": "00000000-0000-0000-0000-000000000007",
+      "display_name": "Olivia Brown",
+      "user_principal_name": "olivia.brown@contoso-demo.com",
+      "account_enabled": true,
+      "identity_type": "user"
+    },
+    {
+      "identity_id": "00000000-0000-0000-0000-000000000008",
+      "display_name": "Noah Davis",
+      "user_principal_name": "noah.davis@contoso-demo.com",
+      "account_enabled": true,
+      "identity_type": "user"
+    },
+    {
+      "identity_id": "00000000-0000-0000-0000-000000000009",
+      "display_name": "Sophia Miller",
+      "user_principal_name": "sophia.miller@contoso-demo.com",
+      "account_enabled": true,
+      "identity_type": "user"
+    },
+    {
+      "identity_id": "00000000-0000-0000-0000-000000000010",
+      "display_name": "Ethan Taylor",
+      "user_principal_name": "ethan.taylor@contoso-demo.com",
+      "account_enabled": true,
+      "identity_type": "user"
+    }
+  ]
+}

@@ -1,0 +1,89 @@
+
+{
+  "resources": [
+    {
+    "project_id": "APOLLO-001",
+    "resource_id": "/subscriptions/75b564c9-ef4f-4c27-9324-2e93f95b8470/resourceGroups/identity-commander/providers/Microsoft.Storage/storageAccounts/identitycommanderstorage",
+    "resource_name": "Apollo Production Storage",
+    "owner": "apollo-owner@contoso-demo.com",
+    "owner_object_id": "3a4c6366-7f58-42d2-ba8d-b03249c2c116"
+    },
+    {
+    "project_id": "ORION-002",
+    "resource_id": "/subscriptions/75b564c9-ef4f-4c27-9324-2e93f95b8470/resourceGroups/idcmd-development",
+    "resource_name": "Orion Development Storage",
+    "owner": "orion-owner@contoso-demo.com",
+    "owner_object_id": "3a4c6366-7f58-42d2-ba8d-b03249c2c116"
+    },
+    {
+    "project_id": "NOVA-003",
+    "resource_id": "/subscriptions/75b564c9-ef4f-4c27-9324-2e93f95b8470/resourceGroups/identity-commander/providers/Microsoft.Storage/storageAccounts/identitycommanderstorage",
+    "resource_name": "Nova Production Storage",
+    "owner": "nova-owner@contoso-demo.com",
+    "owner_object_id": "3a4c6366-7f58-42d2-ba8d-b03249c2c116"
+    },
+    {
+      "project_id": "ATLAS-004",
+      "resource_id": "/subscriptions/demo-subscription/resourceGroups/rg-atlas/providers/Microsoft.Storage/storageAccounts/atlasstorage",
+      "resource_name": "Atlas Storage",
+      "owner": "atlas-owner@contoso-demo.com",
+      "owner_object_id": "3a4c6366-7f58-42d2-ba8d-b03249c2c116"
+    },
+    {
+      "project_id": "PHOENIX-005",
+      "resource_id": "/subscriptions/demo-subscription/resourceGroups/rg-phoenix/providers/Microsoft.Storage/storageAccounts/phoenixstorage",
+      "resource_name": "Phoenix Storage",
+      "owner": "phoenix-owner@contoso-demo.com",
+      "owner_object_id": "3a4c6366-7f58-42d2-ba8d-b03249c2c116"
+    },
+    {
+      "project_id": "TITAN-006",
+      "resource_id": "/subscriptions/demo-subscription/resourceGroups/rg-titan/providers/Microsoft.Storage/storageAccounts/titanstorage",
+      "resource_name": "Titan Storage",
+      "owner": "titan-owner@contoso-demo.com",
+      "owner_object_id": "3a4c6366-7f58-42d2-ba8d-b03249c2c116"
+    },
+    {
+      "project_id": "NEBULA-007",
+      "resource_id": "/subscriptions/demo-subscription/resourceGroups/rg-nebula/providers/Microsoft.Storage/storageAccounts/nebulastorage",
+      "resource_name": "Nebula Storage",
+      "owner": "nebula-owner@contoso-demo.com",
+      "owner_object_id": "3a4c6366-7f58-42d2-ba8d-b03249c2c116"
+    },
+    {
+      "project_id": "VEGA-008",
+      "resource_id": "/subscriptions/demo-subscription/resourceGroups/rg-vega/providers/Microsoft.Storage/storageAccounts/vegastorage",
+      "resource_name": "Vega Storage",
+      "owner": "vega-owner@contoso-demo.com",
+      "owner_object_id": "3a4c6366-7f58-42d2-ba8d-b03249c2c116"
+    },
+    {
+      "project_id": "ZENITH-009",
+      "resource_id": "/subscriptions/demo-subscription/resourceGroups/rg-zenith/providers/Microsoft.Storage/storageAccounts/zenithstorage",
+      "resource_name": "Zenith Storage",
+      "owner": "zenith-owner@contoso-demo.com",
+      "owner_object_id": "3a4c6366-7f58-42d2-ba8d-b03249c2c116"
+    },
+    {
+      "project_id": "HORIZON-010",
+      "resource_id": "/subscriptions/demo-subscription/resourceGroups/rg-horizon/providers/Microsoft.Storage/storageAccounts/horizonstorage",
+      "resource_name": "Horizon Storage",
+      "owner": "horizon-owner@contoso-demo.com",
+      "owner_object_id": "3a4c6366-7f58-42d2-ba8d-b03249c2c116"
+    },
+    {
+    "project_id": "MICHAEL-011",
+    "resource_id": "/subscriptions/75b564c9-ef4f-4c27-9324-2e93f95b8470/resourceGroups/rg-michael/providers/Microsoft.Storage/storageAccounts/michaelstorage001",
+    "resource_name": "Michael Storage",
+    "owner": "michael-owner@contoso-demo.com",
+    "owner_object_id": "3a4c6366-7f58-42d2-ba8d-b03249c2c116"
+    },
+    {
+      "project_id": "SARAH-012",
+      "resource_id": "/subscriptions/75b564c9-ef4f-4c27-9324-2e93f95b8470/resourceGroups/rg-sarah/providers/Microsoft.Storage/storageAccounts/sarahstorage001",
+      "resource_name": "Sarah Storage",
+      "owner": "sarah-owner@contoso-demo.com",
+      "owner_object_id": "3a4c6366-7f58-42d2-ba8d-b03249c2c116"
+    }
+  ]
+}

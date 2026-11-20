@@ -1,0 +1,17 @@
+fastapi
+uvicorn
+pydantic
+streamlit
+pytest
+httpx
+python-dotenv
+requests
+msal
+openai
+azure-ai-projects
+azure-identity
+azure-mgmt-authorization
+azure-mgmt-resource
+azure-monitor-query
+azure-storage-blob
+PyJWT[crypto]

@@ -1,0 +1,8 @@
+.env
+identity_commander_env/
+.git/
+__pycache__/
+*.pyc
+.pytest_cache/
+logs/
+data/remediation_approvals.json

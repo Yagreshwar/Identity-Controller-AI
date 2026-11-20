@@ -1,0 +1,16 @@
+[
+  {
+    "approval_id": "APP-1107656C",
+    "incident_id": "IC-D58556C3",
+    "project_id": "APOLLO-001",
+    "role_assignment_id": "/subscriptions/75b564c9-ef4f-4c27-9324-2e93f95b8470/resourceGroups/identity-commander/providers/Microsoft.Storage/storageAccounts/identitycommanderstorage/providers/Microsoft.Authorization/roleAssignments/4afcdf28-de48-4da8-814b-240f808c3593",
+    "identity_id": "9a115c2b-c0fb-4328-b6c1-5b99fa3a7849",
+    "resource_scope": "/subscriptions/75b564c9-ef4f-4c27-9324-2e93f95b8470/resourceGroups/identity-commander/providers/Microsoft.Storage/storageAccounts/identitycommanderstorage",
+    "proposed_action": "DELETE_ROLE_ASSIGNMENT",
+    "approver": "3a4c6366-7f58-42d2-ba8d-b03249c2c116",
+    "approver_name": "apollo-owner@contoso-demo.com",
+    "status": "APPROVED",
+    "created_at": "2026-11-19T10:58:28.757841Z",
+    "expires_at": "2026-11-19T11:57:49.075306Z"
+  }
+]

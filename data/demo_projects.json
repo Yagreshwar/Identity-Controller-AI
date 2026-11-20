@@ -1,0 +1,125 @@
+
+{
+  "projects": [
+    {
+      "project_id": "APOLLO-001",
+      "name": "Project Apollo",
+      "status": "completed",
+      "end_date": "2026-11-16",
+      "resource_owner": "apollo-owner@contoso-demo.com",
+      "identities": [
+        "alex.morgan@yagreshwar007gmail.onmicrosoft.com"
+      ]
+    },
+    {
+      "project_id": "ORION-002",
+      "name": "Project Orion",
+      "status": "active",
+      "end_date": null,
+      "resource_owner": "orion-owner@contoso-demo.com",
+      "identities": [
+        "priya.shah@yagreshwar007gmail.onmicrosoft.com"
+      ]
+    },
+    {
+      "project_id": "NOVA-003",
+      "name": "Project Nova",
+      "status": "completed",
+      "end_date": "2026-09-30",
+      "resource_owner": "nova-owner@contoso-demo.com",
+      "identities": [
+        "idcmd-build-service"
+      ]
+    },
+    {
+      "project_id": "ATLAS-004",
+      "name": "Project Atlas",
+      "status": "active",
+      "end_date": null,
+      "resource_owner": "atlas-owner@contoso-demo.com",
+      "identities": [
+        "john.carter@contoso-demo.com"
+      ]
+    },
+    {
+      "project_id": "PHOENIX-005",
+      "name": "Project Phoenix",
+      "status": "completed",
+      "end_date": "2026-08-20",
+      "resource_owner": "phoenix-owner@contoso-demo.com",
+      "identities": [
+        "emma.wilson@contoso-demo.com"
+      ]
+    },
+    {
+      "project_id": "TITAN-006",
+      "name": "Project Titan",
+      "status": "active",
+      "end_date": null,
+      "resource_owner": "titan-owner@contoso-demo.com",
+      "identities": [
+        "liam.jones@contoso-demo.com"
+      ]
+    },
+    {
+      "project_id": "NEBULA-007",
+      "name": "Project Nebula",
+      "status": "completed",
+      "end_date": "2026-07-15",
+      "resource_owner": "nebula-owner@contoso-demo.com",
+      "identities": [
+        "olivia.brown@contoso-demo.com"
+      ]
+    },
+    {
+      "project_id": "VEGA-008",
+      "name": "Project Vega",
+      "status": "active",
+      "end_date": null,
+      "resource_owner": "vega-owner@contoso-demo.com",
+      "identities": [
+        "noah.davis@contoso-demo.com"
+      ]
+    },
+    {
+      "project_id": "ZENITH-009",
+      "name": "Project Zenith",
+      "status": "completed",
+      "end_date": "2026-06-30",
+      "resource_owner": "zenith-owner@contoso-demo.com",
+      "identities": [
+        "sophia.miller@contoso-demo.com"
+      ]
+    },
+    {
+      "project_id": "HORIZON-010",
+      "name": "Project Horizon",
+      "status": "active",
+      "end_date": null,
+      "resource_owner": "horizon-owner@contoso-demo.com",
+      "identities": [
+        "ethan.taylor@contoso-demo.com"
+      ]
+    },
+    {
+      "project_id": "MICHAEL-011",
+      "project_name": "Project Meridian",
+      "status": "completed",
+      "end_date": "2026-11-17",
+      "resource_owner": "michael-owner@contoso-demo.com",
+      "identities": [
+        "michael.anderson@yagreshwar007gmail.onmicrosoft.com"
+      ]
+    },
+  {
+    "project_id": "SARAH-012",
+    "project_name": "Project Summit",
+    "status": "active",
+    "end_date": null,
+    "resource_owner": "sarah-owner@contoso-demo.com",
+    "identities": [
+      "sarah.johnson@yagreshwar007gmail.onmicrosoft.com"
+    ]
+  }
+  ]
+}
