@@ -32,6 +32,14 @@ REMEDIATION_MANAGED_IDENTITY_PRINCIPAL_ID = os.getenv(
     "REMEDIATION_MANAGED_IDENTITY_PRINCIPAL_ID"
 )
 
+# Safety switch for real deletion. Off by default: remediation then only
+# confirms the approved assignment and records a SIMULATED result. Set to
+# "true" on the deployed backend to delete the approved role assignment.
+REMEDIATION_DELETE_ENABLED = (
+    os.getenv("REMEDIATION_DELETE_ENABLED", "false").strip().casefold()
+    == "true"
+)
+
 if (
     DISCOVERY_MANAGED_IDENTITY_CLIENT_ID
     and REMEDIATION_MANAGED_IDENTITY_CLIENT_ID

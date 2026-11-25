@@ -228,6 +228,9 @@ class FakeAzure:
         }]
         self.remediation_identity_available = True
         self.remediation_calls: list[tuple[str, str]] = []
+        # Deletion is blocked unless a test explicitly turns it on.
+        self.allow_deletion = False
+        self.delete_fails = False
 
         # Data-plane status after the project end date, per identity.
         self.post_project_activity = {
@@ -501,8 +504,31 @@ class _FakeRoleAssignmentOperations:
     def delete(self, *args, **kwargs):
         raise AssertionError("Role-assignment deletion must never be called.")
 
-    def delete_by_id(self, *args, **kwargs):
-        raise AssertionError("Role-assignment deletion must never be called.")
+    def delete_by_id(self, role_assignment_id: str, *args, **kwargs):
+        azure = self._azure
+
+        if not azure.allow_deletion:
+            raise AssertionError("Role-assignment deletion must never be called.")
+
+        azure.remediation_calls.append(("delete_by_id", role_assignment_id))
+
+        if azure.delete_fails:
+            from azure.core.exceptions import HttpResponseError
+
+            raise HttpResponseError(message="AuthorizationFailed")
+
+        item = azure.find_assignment(role_assignment_id)
+
+        if item is None:
+            return None
+
+        for assignments in azure.assignments.values():
+            assignments[:] = [
+                entry for entry in assignments
+                if entry["id"].casefold() != role_assignment_id.casefold()
+            ]
+
+        return SimpleNamespace(**item)
 
 
 class FakeRemediationClient:

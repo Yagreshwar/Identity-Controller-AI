@@ -84,6 +84,13 @@
       "resource_name": "Sarah Storage",
       "owner": "sarah-owner@contoso-demo.com",
       "owner_object_id": "3a4c6366-7f58-42d2-ba8d-b03249c2c116"
+    },
+    {
+      "project_id": "PROJ-HORIZON-001",
+      "resource_id": "/subscriptions/75b564c9-ef4f-4c27-9324-2e93f95b8470/resourceGroups/identity-commander/providers/Microsoft.Storage/storageAccounts/identitycommanderstorage",
+      "resource_name": "Horizon Production Storage",
+      "owner": "horizon-owner@contoso-demo.com",
+      "owner_object_id": "3a4c6366-7f58-42d2-ba8d-b03249c2c116"
     }
   ]
 }

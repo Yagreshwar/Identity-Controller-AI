@@ -72,6 +72,20 @@ def has_simulated_removal(role_assignment_id: str) -> bool:
     )
 
 
+def has_executed_removal(role_assignment_id: str) -> bool:
+    """Return True when the assignment was already really deleted."""
+
+    target = role_assignment_id.rstrip("/").casefold()
+
+    return any(
+        event.get("action") == "ROLE_ASSIGNMENT_REMOVAL"
+        and event.get("status") == "EXECUTED"
+        and str(event.get("role_assignment_id", "")).rstrip("/").casefold()
+        == target
+        for event in read_audit_events()
+    )
+
+
 def log_investigation_event(event: dict) -> None:
     """Record identity investigation events."""
 
@@ -85,7 +99,7 @@ def log_approval_event(event: dict) -> None:
 
 
 def log_remediation_event(event: dict) -> None:
-    """Record simulated remediation events, including rejections."""
+    """Record remediation events: simulated, executed, failed or rejected."""
 
     _write_audit_event(event, "REMEDIATION")
 

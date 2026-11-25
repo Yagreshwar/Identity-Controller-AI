@@ -141,6 +141,106 @@ def test_alex_full_workflow_is_simulated_verified_and_audited(
     assert trail == expected
 
 
+def enable_real_deletion(monkeypatch, fake_azure):
+    monkeypatch.setattr(main, "REMEDIATION_DELETE_ENABLED", True)
+    monkeypatch.setattr(main, "get_access_test_credential", FakeTestIdentityCredential)
+    monkeypatch.setattr(main.time, "sleep", lambda seconds: None)
+    fake_azure.allow_deletion = True
+
+
+def test_real_deletion_removes_only_the_approved_assignment(
+    api_client, current_user, fake_azure, fake_ai, audit_events, monkeypatch
+):
+    enable_real_deletion(monkeypatch, fake_azure)
+    create_approved_alex_approval(api_client, current_user, "APP-REAL")
+
+    response = api_client.post("/remediate", json={"approval_id": "APP-REAL"})
+
+    assert response.status_code == 200
+    body = response.json()
+
+    assert body["execution"]["status"] == "EXECUTED"
+    assert body["execution"]["role_assignment_id"] == ALEX_ASSIGNMENT
+    assert body["execution"]["remediation_identity"] == REMEDIATION_MI_CLIENT_ID
+    assert "deleted the approved role assignment" in body["execution"]["message"]
+
+    # Exactly one delete, of exactly the approved assignment.
+    assert fake_azure.remediation_calls.count(("delete_by_id", ALEX_ASSIGNMENT)) == 1
+    assert [c for c in fake_azure.remediation_calls if c[0] == "delete_by_id"] == [
+        ("delete_by_id", ALEX_ASSIGNMENT)
+    ]
+
+    # Alex's assignment is gone; Priya's legitimate access is untouched.
+    assert fake_azure.assignments[ALEX_ID] == []
+    assert fake_azure.assignments[PRIYA_ID][0]["id"] == PRIYA_ASSIGNMENT
+    assert body["verification"]["legitimate_access"]["status"] == "INTACT"
+
+    verification = body["verification"]
+    assert verification["mode"] == "EXECUTION"
+    assert verification["status"] == "REMEDIATION_VERIFIED"
+    assert verification["controlled_access_test"]["status"] == "ACCESS_DENIED"
+    assert any(
+        item["id"] == ALEX_ASSIGNMENT
+        for item in verification["role_assignments_before"]
+    )
+    assert verification["role_assignments_after"] == []
+
+    trail = [
+        (event["event_type"], event.get("action"), event.get("status"))
+        for event in audit_events()
+    ]
+    assert ("REMEDIATION", "ROLE_ASSIGNMENT_REMOVAL", "EXECUTED") in trail
+    assert ("VERIFICATION", "REMEDIATION_VERIFICATION", "REMEDIATION_VERIFIED") in trail
+
+
+def test_deleted_assignment_cannot_be_executed_twice(
+    api_client, current_user, fake_azure, fake_ai, monkeypatch
+):
+    enable_real_deletion(monkeypatch, fake_azure)
+    create_approved_alex_approval(api_client, current_user, "APP-TWICE")
+
+    assert api_client.post("/remediate", json={"approval_id": "APP-TWICE"}).status_code == 200
+
+    again = api_client.post("/remediate", json={"approval_id": "APP-TWICE"})
+
+    assert again.status_code == 400
+    assert [c for c in fake_azure.remediation_calls if c[0] == "delete_by_id"] == [
+        ("delete_by_id", ALEX_ASSIGNMENT)
+    ]
+
+
+def test_failed_real_deletion_returns_503_and_keeps_access(
+    api_client, current_user, fake_azure, fake_ai, audit_events, monkeypatch
+):
+    enable_real_deletion(monkeypatch, fake_azure)
+    fake_azure.delete_fails = True
+    create_approved_alex_approval(api_client, current_user, "APP-DELFAIL")
+
+    response = api_client.post("/remediate", json={"approval_id": "APP-DELFAIL"})
+
+    assert response.status_code == 503
+    assert fake_azure.find_assignment(ALEX_ASSIGNMENT) is not None
+    assert audit_events()[-1]["event_type"] == "REMEDIATION"
+    assert audit_events()[-1]["status"] == "FAILED"
+    assert not any(e["event_type"] == "VERIFICATION" for e in audit_events())
+
+
+def test_deletion_stays_off_unless_enabled(
+    api_client, current_user, fake_azure, fake_ai, monkeypatch
+):
+    monkeypatch.setattr(main, "get_access_test_credential", FakeTestIdentityCredential)
+    # Even if Azure would allow a delete, the backend must not ask for one.
+    fake_azure.allow_deletion = True
+    create_approved_alex_approval(api_client, current_user, "APP-OFF")
+
+    body = api_client.post("/remediate", json={"approval_id": "APP-OFF"}).json()
+
+    assert body["execution"]["status"] == "SIMULATED"
+    assert body["verification"]["mode"] == "SIMULATION"
+    assert not any(c[0] == "delete_by_id" for c in fake_azure.remediation_calls)
+    assert fake_azure.find_assignment(ALEX_ASSIGNMENT) is not None
+
+
 def test_priya_negative_path_keeps_legitimate_access(
     api_client, current_user, fake_azure, fake_ai
 ):
@@ -259,6 +359,10 @@ def test_backend_has_no_write_capable_azure_code_path():
     }
     forbidden_names = {"ClientSecretCredential"}
 
+    # The one sanctioned deletion: the remediation identity's exact-ID delete.
+    sanctioned_file = APP_DIR / "remediation" / "remediation_identity.py"
+    sanctioned_deletes = 0
+
     for source_file in APP_DIR.rglob("*.py"):
         tree = ast.parse(source_file.read_text(encoding="utf-8"))
 
@@ -273,7 +377,19 @@ def test_backend_has_no_write_capable_azure_code_path():
                 and isinstance(node.func.value, ast.Attribute)
                 and node.func.value.attr == "role_assignments"
             ):
+                if source_file == sanctioned_file and node.func.attr == "delete_by_id":
+                    sanctioned_deletes += 1
+                    continue
+
                 raise AssertionError(f"Role assignment write in {source_file}")
+
+    assert sanctioned_deletes == 1
+
+
+def test_real_deletion_is_off_by_default():
+    from app import config
+
+    assert config.REMEDIATION_DELETE_ENABLED is False
 
 
 def test_configuration_has_no_remediation_secret():

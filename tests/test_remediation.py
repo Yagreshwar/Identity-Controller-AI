@@ -48,6 +48,7 @@ def execute_remediation(
     approver_authorized=True,
     already_executed=False,
     identity=None,
+    delete_target=None,
 ):
     audit_events = []
 
@@ -61,9 +62,58 @@ def execute_remediation(
         already_executed=already_executed,
         audit_log=audit_events.append,
         confirm_target=identity or RecordingIdentity(),
+        delete_target=delete_target,
     )
 
     return result, audit_events
+
+
+def test_deletes_the_exact_approved_assignment_after_confirming_it():
+    confirm = RecordingIdentity()
+    delete = RecordingIdentity()
+
+    result, audit_events = execute_remediation(
+        identity=confirm,
+        delete_target=delete,
+    )
+
+    scope = "/subscriptions/demo/resourceGroups/apollo"
+    assert result["status"] == "EXECUTED"
+    assert result["role_assignment_id"] == "assignment-001"
+    assert result["remediation_identity"] == "remediation-mi"
+    assert confirm.calls == [("assignment-001", scope)]
+    assert delete.calls == [("assignment-001", scope)]
+    assert [event["status"] for event in audit_events] == ["EXECUTED"]
+
+
+def test_failed_deletion_is_reported_and_audited():
+    delete = RecordingIdentity(error=RemediationIdentityError("Delete refused."))
+
+    result, audit_events = execute_remediation(delete_target=delete)
+
+    assert result == {"status": "FAILED", "reason": "Delete refused."}
+    assert [event["status"] for event in audit_events] == ["FAILED"]
+
+
+def test_failed_confirmation_never_reaches_deletion():
+    confirm = RecordingIdentity(error=RemediationIdentityError("Not visible."))
+    delete = RecordingIdentity()
+
+    result, _ = execute_remediation(identity=confirm, delete_target=delete)
+
+    assert result["status"] == "FAILED"
+    assert delete.calls == []
+
+
+def test_rejected_request_never_deletes():
+    approval = get_approval()
+    approval["status"] = "PENDING"
+    delete = RecordingIdentity()
+
+    result, _ = execute_remediation(approval=approval, delete_target=delete)
+
+    assert result["status"] == "REJECTED"
+    assert delete.calls == []
 
 
 def test_simulate_approved_role_assignment():

@@ -70,6 +70,13 @@
       "user_principal_name": "ethan.taylor@contoso-demo.com",
       "account_enabled": true,
       "identity_type": "user"
+    },
+    {
+      "identity_id": "e9a29cd3-8a37-476c-879c-dc507c70e46a",
+      "display_name": "Daniel Carter",
+      "user_principal_name": "daniel.carter@yagreshwar007gmail.onmicrosoft.com",
+      "account_enabled": true,
+      "identity_type": "user"
     }
   ]
 }

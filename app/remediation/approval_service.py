@@ -297,6 +297,22 @@ def create_approval(
     return approval
 
 
+def mark_approval_executed(approval_id: str) -> RemediationApproval:
+    """
+    Called by the backend only after a real role-assignment deletion succeeds.
+    Remediation history keeps the record of the run; this only stops the
+    approval from still looking ready for remediation.
+    """
+
+    with _approvals_lock:
+        approvals = _load_approvals()
+        approval = _find_approval(approvals, approval_id)
+        approval.status = "EXECUTED"
+        _save_approvals(approvals)
+
+    return approval
+
+
 def update_approval_status(
     approval_id: str,
     status: str,

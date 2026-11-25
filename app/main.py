@@ -1,5 +1,6 @@
 
 import threading
+import time
 from datetime import datetime
 from typing import Literal, NoReturn
 
@@ -8,16 +9,19 @@ from pydantic import BaseModel, Field, ValidationError
 
 from app.agent.identity_agent import IdentityNotFoundError, run_investigation
 from app.audit.audit_logger import (
+    has_executed_removal,
     has_simulated_removal,
     log_investigation_event,
     log_remediation_event,
     log_verification_event,
+    read_audit_events,
 )
 from app.authentication import get_current_user
 from app.config import (
     ACCESS_TEST_BLOB,
     ACCESS_TEST_CONTAINER,
     ACTIVE_DEVELOPER_OBJECT_ID,
+    REMEDIATION_DELETE_ENABLED,
 )
 from app.connectors.entra_client import search_identity
 from app.connectors.rbac_client import get_role_assignments
@@ -37,11 +41,13 @@ from app.remediation.approval_service import (
     create_approval,
     get_approval,
     list_approvals_for_owner,
+    mark_approval_executed,
     update_approval_status,
 )
 from app.remediation.executor import remove_role_assignment
 from app.remediation.remediation_identity import (
     confirm_target_with_remediation_identity,
+    delete_role_assignment_with_remediation_identity,
 )
 from app.remediation.verification import (
     check_legitimate_access,
@@ -50,6 +56,11 @@ from app.remediation.verification import (
 
 
 _remediation_lock = threading.Lock()
+
+# After a real deletion Azure can take a few seconds to stop listing the
+# assignment, so verification re-reads it briefly before reporting.
+_VERIFY_RETRIES = 5
+_VERIFY_RETRY_SECONDS = 2
 
 
 class InvestigationRequest(BaseModel):
@@ -123,6 +134,9 @@ def _active_developer_assignments() -> list[dict] | None:
         return None
 
 
+app = FastAPI()
+
+
 @app.get("/health")
 def health_check():
     return {"status": "healthy"}
@@ -181,6 +195,31 @@ def investigate_identity(
     })
 
     return finding
+
+
+@app.get("/investigations/latest")
+def latest_investigations(current_user: dict = Depends(get_current_user)):
+    """
+    The most recent completed investigation for each identity. A newer
+    completed investigation replaces the earlier one in this view; the audit
+    log itself stays append-only.
+    """
+    latest: dict[str, dict] = {}
+
+    for event in read_audit_events():
+        if (
+            event.get("event_type") == "INVESTIGATION"
+            and event.get("status") == "COMPLETED"
+        ):
+            latest[event.get("identity_id")] = event
+
+    return list(latest.values())
+
+
+@app.get("/audit/events")
+def audit_events(current_user: dict = Depends(get_current_user)):
+    """All audit events in the order they were recorded, read from the backend."""
+    return read_audit_events()
 
 
 @app.post("/approvals", response_model=RemediationApproval)
@@ -365,8 +404,11 @@ def remediate(
                 scope=scope,
             )
 
-            # The remediation identity confirms the target; deletion is
-            # disabled for this POC.
+            # The remediation identity confirms the target. It deletes only
+            # when REMEDIATION_DELETE_ENABLED is on; otherwise the run is
+            # simulated and nothing is deleted.
+            delete_enabled = REMEDIATION_DELETE_ENABLED
+
             execution_result = remove_role_assignment(
                 approval=approval.model_dump(mode="python"),
                 role_assignment=role_assignment,
@@ -376,21 +418,49 @@ def remediate(
                 evidence_complete=finding.approval_eligible,
                 project_status=finding.project_status or "",
                 assignment_type=role_assignment["assignment_source"],
-                already_executed=has_simulated_removal(assignment_id),
+                already_executed=(
+                    has_executed_removal(assignment_id)
+                    if delete_enabled
+                    else has_simulated_removal(assignment_id)
+                ),
                 audit_log=log_remediation_event,
                 confirm_target=confirm_target_with_remediation_identity,
+                delete_target=(
+                    delete_role_assignment_with_remediation_identity
+                    if delete_enabled
+                    else None
+                ),
             )
 
         if execution_result["status"] == "FAILED":
             raise HTTPException(status_code=503, detail=execution_result)
 
-        if execution_result["status"] != "SIMULATED":
+        if execution_result["status"] not in ("SIMULATED", "EXECUTED"):
             raise HTTPException(status_code=400, detail=execution_result)
+
+        executed = execution_result["status"] == "EXECUTED"
+
+        if executed:
+            mark_approval_executed(approval.approval_id)
 
         current_assignments = get_role_assignments(
             identity_id=identity_id,
             scope=scope,
         )
+
+        if executed:
+            for _ in range(_VERIFY_RETRIES):
+                if not any(
+                    _normalize(item.get("id")) == _normalize(assignment_id)
+                    for item in current_assignments
+                ):
+                    break
+
+                time.sleep(_VERIFY_RETRY_SECONDS)
+                current_assignments = get_role_assignments(
+                    identity_id=identity_id,
+                    scope=scope,
+                )
 
         target_role = role_assignment.get("role_definition_id")
 
@@ -418,14 +488,16 @@ def remediate(
             current_role_assignments=current_assignments,
             other_access_paths=other_access_paths,
             access_test_result=access_test_result(access_test),
-            simulated=True,
+            simulated=not executed,
         )
 
         role_assignments_before = _assignment_view(assignments_before)
         role_assignments_after = _assignment_view(current_assignments)
 
+        mode = "EXECUTION" if executed else "SIMULATION"
+
         verification.update({
-            "mode": "SIMULATION",
+            "mode": mode,
             "verified_scope": (
                 "Direct role assignments at the approved resource scope. "
                 "Group-inherited access is not evaluated."
@@ -449,7 +521,7 @@ def remediate(
             "legitimate_access": legitimate_access["status"],
             "role_assignments_before": role_assignments_before,
             "role_assignments_after": role_assignments_after,
-            "mode": "SIMULATION",
+            "mode": mode,
         })
 
         return {

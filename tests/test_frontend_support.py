@@ -108,6 +108,58 @@ def test_investigation_audit_keeps_report_detail(
     assert completed["findings"][0]["resource_scope"] == APOLLO_SCOPE
 
 
+def test_latest_investigation_replaces_the_previous_one_for_an_identity(
+    api_client, current_user, fake_azure, fake_ai, audit_events
+):
+    current_user.user_id = SECURITY_OPERATOR_ID
+
+    for _ in range(2):
+        assert api_client.post(
+            "/investigate", json={"identity_id": ALEX_ID}
+        ).status_code == 200
+
+    completed = [
+        event for event in audit_events()
+        if event["event_type"] == "INVESTIGATION"
+        and event.get("status") == "COMPLETED"
+    ]
+    assert len(completed) == 2
+
+    latest = api_client.get("/investigations/latest").json()
+
+    assert len(latest) == 1
+    assert latest[0]["identity_id"] == ALEX_ID
+    assert latest[0]["recorded_at"] == completed[-1]["recorded_at"]
+    assert latest[0]["investigation_summary"]["summary"]
+    assert latest[0]["evidence_records"]
+
+
+def test_audit_events_endpoint_returns_backend_events(
+    api_client, current_user, fake_azure, fake_ai
+):
+    current_user.user_id = SECURITY_OPERATOR_ID
+    api_client.post("/investigate", json={"identity_id": ALEX_ID})
+
+    events = api_client.get("/audit/events").json()
+
+    assert any(
+        e["event_type"] == "INVESTIGATION" and e["status"] == "COMPLETED"
+        for e in events
+    )
+
+
+def test_latest_investigations_exclude_failed_runs(
+    api_client, current_user, fake_azure, fake_ai
+):
+    current_user.user_id = SECURITY_OPERATOR_ID
+
+    assert api_client.get("/investigations/latest").json() == []
+
+    api_client.post("/investigate", json={"identity_id": "not-a-real-identity"})
+
+    assert api_client.get("/investigations/latest").json() == []
+
+
 def test_remediation_verification_records_before_and_after_assignments(
     api_client, current_user, fake_azure, fake_ai, audit_events
 ):

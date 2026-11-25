@@ -25,11 +25,15 @@ def remove_role_assignment(
     already_executed: bool,
     audit_log: Callable[[dict], None],
     confirm_target: Callable[[str, str], dict],
+    delete_target: Callable[[str, str], dict] | None = None,
 ) -> dict:
     """
     Validate an approved removal and hand it to the remediation identity.
-    Deletion is disabled for this POC: confirm_target authenticates as the
-    remediation identity and confirms the assignment without deleting it.
+
+    confirm_target authenticates as the remediation identity and confirms the
+    assignment. When delete_target is supplied it then deletes exactly that
+    assignment (status EXECUTED). Without it nothing is deleted and the result
+    is SIMULATED.
     """
 
     approval = approval or {}
@@ -137,6 +141,47 @@ def remove_role_assignment(
             "reason": str(exc),
         }
 
+    if delete_target is not None:
+        try:
+            deletion = delete_target(assignment_id, approval["resource_scope"])
+        except RemediationIdentityError as exc:
+            audit_log({
+                "action": "ROLE_ASSIGNMENT_REMOVAL",
+                "role_assignment_id": assignment_id,
+                "identity_id": approval["identity_id"],
+                "resource_scope": approval["resource_scope"],
+                "approval_id": approval.get("approval_id"),
+                "status": "FAILED",
+                "reason": str(exc),
+                "timestamp": datetime.now(UTC).isoformat(),
+            })
+
+            return {
+                "status": "FAILED",
+                "reason": str(exc),
+            }
+
+        audit_log({
+            "action": "ROLE_ASSIGNMENT_REMOVAL",
+            "role_assignment_id": assignment_id,
+            "identity_id": approval["identity_id"],
+            "resource_scope": approval["resource_scope"],
+            "approval_id": approval.get("approval_id"),
+            "remediation_identity": deletion.get("remediation_identity"),
+            "status": "EXECUTED",
+            "timestamp": datetime.now(UTC).isoformat(),
+        })
+
+        return {
+            "status": "EXECUTED",
+            "role_assignment_id": assignment_id,
+            "remediation_identity": deletion.get("remediation_identity"),
+            "message": (
+                "The remediation identity deleted the approved role "
+                "assignment."
+            ),
+        }
+
     audit_log({
         "action": "ROLE_ASSIGNMENT_REMOVAL",
         "role_assignment_id": assignment_id,
@@ -154,7 +199,7 @@ def remove_role_assignment(
         "remediation_identity": confirmation.get("remediation_identity"),
         "message": (
             "The remediation identity confirmed the approved assignment. "
-            "Deletion is disabled for this POC; no Azure role assignment "
-            "was deleted."
+            "Real deletion is switched off (REMEDIATION_DELETE_ENABLED); "
+            "no Azure role assignment was deleted."
         ),
     }

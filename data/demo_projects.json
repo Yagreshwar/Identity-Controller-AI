@@ -120,6 +120,16 @@
     "identities": [
       "sarah.johnson@yagreshwar007gmail.onmicrosoft.com"
     ]
+  },
+  {
+    "project_id": "PROJ-HORIZON-001",
+    "name": "Project Horizon",
+    "status": "completed",
+    "end_date": "2026-11-20",
+    "resource_owner": "horizon-owner@contoso-demo.com",
+    "identities": [
+      "daniel.carter@yagreshwar007gmail.onmicrosoft.com"
+    ]
   }
   ]
 }

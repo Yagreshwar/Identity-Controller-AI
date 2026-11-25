@@ -134,14 +134,10 @@ def validate_remediation_permissions() -> None:
             )
 
 
-def confirm_target_with_remediation_identity(
-    role_assignment_id: str,
-    resource_scope: str,
-) -> dict:
+def _validate_target(role_assignment_id: str, resource_scope: str) -> None:
     """
-    Authenticate as the remediation identity and confirm the approved role
-    assignment is within the demo scope and visible to it. Role-assignment
-    deletion is disabled for this POC, so no write operation is performed.
+    Refuse any target outside the dedicated demo resource group, and any
+    assignment that is not at exactly the approved resource scope.
     """
 
     _validate_configuration()
@@ -172,6 +168,19 @@ def confirm_target_with_remediation_identity(
             "The role assignment does not belong to the approved resource scope."
         )
 
+
+def confirm_target_with_remediation_identity(
+    role_assignment_id: str,
+    resource_scope: str,
+) -> dict:
+    """
+    Authenticate as the remediation identity and confirm the approved role
+    assignment is within the demo scope and visible to it. This only reads;
+    deletion is a separate step.
+    """
+
+    _validate_target(role_assignment_id, resource_scope)
+
     validate_remediation_permissions()
 
     try:
@@ -194,4 +203,46 @@ def confirm_target_with_remediation_identity(
     return {
         "remediation_identity": REMEDIATION_MANAGED_IDENTITY_CLIENT_ID,
         "role_assignment_id": assignment.id,
+    }
+
+
+def delete_role_assignment_with_remediation_identity(
+    role_assignment_id: str,
+    resource_scope: str,
+) -> dict:
+    """
+    Delete exactly one approved role assignment as the remediation identity.
+
+    This is the only place in the backend that deletes a role assignment. It
+    re-checks the demo-scope guards immediately before deleting and only ever
+    deletes the exact assignment ID it is given.
+    """
+
+    _validate_target(role_assignment_id, resource_scope)
+
+    try:
+        deleted = get_remediation_client().role_assignments.delete_by_id(
+            role_assignment_id
+        )
+    except AzureError as exc:
+        raise RemediationIdentityError(
+            "The remediation identity could not delete the approved role "
+            "assignment."
+        ) from exc
+
+    if deleted is None:
+        raise RemediationIdentityError(
+            "The approved role assignment no longer exists; nothing was deleted."
+        )
+
+    if _normalize(getattr(deleted, "id", None)) != _normalize(
+        role_assignment_id
+    ):
+        raise RemediationIdentityError(
+            "Azure reported a different role assignment than the approved one."
+        )
+
+    return {
+        "remediation_identity": REMEDIATION_MANAGED_IDENTITY_CLIENT_ID,
+        "role_assignment_id": role_assignment_id,
     }

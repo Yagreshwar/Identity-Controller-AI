@@ -58,6 +58,8 @@ class FakeBackend:
     def __init__(self):
         self.calls = []
         self.approvals = [dict(APPROVAL)]
+        self.investigations = []
+        self.audit = []
 
     def __call__(self, method, url, headers=None, timeout=None, **kwargs):
         path = url.replace("http://localhost:8000", "")
@@ -71,6 +73,12 @@ class FakeBackend:
 
         if method == "GET" and path == "/approvals":
             return FakeResponse(self.approvals)
+
+        if method == "GET" and path == "/investigations/latest":
+            return FakeResponse(self.investigations)
+
+        if method == "GET" and path == "/audit/events":
+            return FakeResponse(self.audit)
 
         if method == "GET" and path == "/identities/search":
             return FakeResponse([{
@@ -99,6 +107,8 @@ def backend(monkeypatch):
 
 @pytest.fixture
 def signed_in(monkeypatch):
+    # Keep tests independent of the API URL configured in .env.
+    monkeypatch.setenv("IDENTITY_COMMANDER_API_URL", "http://localhost:8000")
     monkeypatch.setenv("AZURE_TENANT_ID", "tenant")
     monkeypatch.setenv("FRONTEND_CLIENT_ID", "frontend")
     monkeypatch.setenv("FRONTEND_CLIENT_SECRET", "secret")
@@ -119,6 +129,14 @@ def write_audit(*events):
         audit_logger._write_audit_event(event, event_type)
 
 
+def backend_audit(backend, *events):
+    """Audit events as the backend returns them (with event_type and time)."""
+    backend.audit = [
+        {**event, "event_type": event_type, "recorded_at": "2026-11-22T10:00:00+00:00"}
+        for event_type, event in events
+    ]
+
+
 def test_every_api_call_carries_the_bearer_token(backend, signed_in, monkeypatch):
     run_page("overview", monkeypatch)
 
@@ -128,7 +146,8 @@ def test_every_api_call_carries_the_bearer_token(backend, signed_in, monkeypatch
 
 
 def test_overview_shows_the_four_kpis(backend, signed_in, monkeypatch):
-    write_audit(
+    backend_audit(
+        backend,
         ("INVESTIGATION", {
             "action": "IDENTITY_INVESTIGATION",
             "status": "COMPLETED",
@@ -158,10 +177,29 @@ def test_overview_shows_the_four_kpis(backend, signed_in, monkeypatch):
         "Identities scanned",
         "High-risk findings",
         "Pending approvals (yours)",
-        "Remediations completed (simulated)",
+        "Remediations completed",
     ]
     assert values == ["1", "1", "1", "1"]
     assert not at.exception
+
+
+def test_overview_ignores_the_local_audit_file(backend, signed_in, monkeypatch):
+    write_audit(
+        ("INVESTIGATION", {
+            "action": "IDENTITY_INVESTIGATION",
+            "status": "COMPLETED",
+            "identity_id": "old-local-id",
+            "identity_name": "Old Local Record",
+            "findings": [],
+        }),
+    )
+    backend_audit(backend)
+
+    at = run_page("overview", monkeypatch)
+
+    assert not at.exception
+    assert [metric.value for metric in at.metric][0] == "0"
+    assert any(c["path"] == "/audit/events" for c in backend.calls)
 
 
 def test_search_sends_the_typed_term_to_the_backend(backend, signed_in, monkeypatch):
@@ -171,7 +209,9 @@ def test_search_sends_the_typed_term_to_the_backend(backend, signed_in, monkeypa
     at.session_state["token_expires_at"] = time.time() + 3600
     at.run(timeout=20)
 
-    at.text_input[0].input("Alex Morgan").run(timeout=20)
+    at.text_input[0].input("Alex Morgan")
+    submit = next(b for b in at.button if b.label == "Submit")
+    submit.click().run(timeout=20)
 
     searches = [c for c in backend.calls if c["path"] == "/identities/search"]
     assert searches[-1]["params"] == {"q": "Alex Morgan"}
@@ -198,7 +238,8 @@ def test_remediation_history_shows_before_and_after(backend, signed_in, monkeypa
         "scope": "/subscriptions/s/resourceGroups/rg/providers/x/apollo",
         "assignment_source": "DIRECT",
     }
-    write_audit(
+    backend_audit(
+        backend,
         ("REMEDIATION", {
             "action": "ROLE_ASSIGNMENT_REMOVAL",
             "approval_id": "APP-1",
@@ -224,27 +265,32 @@ def test_remediation_history_shows_before_and_after(backend, signed_in, monkeypa
     )
 
 
+def _alex_investigation(summary: str) -> dict:
+    return {
+        "action": "IDENTITY_INVESTIGATION",
+        "event_type": "INVESTIGATION",
+        "status": "COMPLETED",
+        "identity_id": "alex-id",
+        "identity_name": "Alex Morgan",
+        "findings": [],
+        "investigation_summary": {
+            "summary": summary,
+            "alternative_explanations": ["Access may be a forgotten grant."],
+            "evidence_gaps": ["Diagnostic logs are incomplete."],
+            "evidence_ids": [],
+        },
+        "evidence_records": [{
+            "evidence_id": "EVID-001",
+            "source": "Microsoft Entra ID",
+            "description": "Identity Alex Morgan.",
+        }],
+    }
+
+
 def test_report_shows_explanation_and_alternatives(backend, signed_in, monkeypatch):
-    write_audit(
-        ("INVESTIGATION", {
-            "action": "IDENTITY_INVESTIGATION",
-            "status": "COMPLETED",
-            "identity_id": "alex-id",
-            "identity_name": "Alex Morgan",
-            "findings": [],
-            "investigation_summary": {
-                "summary": "Alex retains access after the project ended.",
-                "alternative_explanations": ["Access may be a forgotten grant."],
-                "evidence_gaps": ["Diagnostic logs are incomplete."],
-                "evidence_ids": [],
-            },
-            "evidence_records": [{
-                "evidence_id": "EVID-001",
-                "source": "Microsoft Entra ID",
-                "description": "Identity Alex Morgan.",
-            }],
-        }),
-    )
+    backend.investigations = [
+        _alex_investigation("Alex retains access after the project ended.")
+    ]
 
     at = run_page("report", monkeypatch)
 
@@ -253,3 +299,22 @@ def test_report_shows_explanation_and_alternatives(backend, signed_in, monkeypat
     assert "Alex retains access after the project ended." in rendered
     assert "Access may be a forgotten grant." in rendered
     assert "Diagnostic logs are incomplete." in rendered
+
+
+def test_report_uses_the_backend_not_the_local_audit_file(
+    backend, signed_in, monkeypatch
+):
+    write_audit(
+        ("INVESTIGATION", _alex_investigation("Old result from the local file.")),
+    )
+    backend.investigations = [
+        _alex_investigation("Latest result from the backend.")
+    ]
+
+    at = run_page("report", monkeypatch)
+
+    assert not at.exception
+    rendered = " ".join(markdown.value for markdown in at.markdown)
+    assert "Latest result from the backend." in rendered
+    assert "Old result from the local file." not in rendered
+    assert any(c["path"] == "/investigations/latest" for c in backend.calls)
